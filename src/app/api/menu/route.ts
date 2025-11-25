@@ -107,9 +107,16 @@ export async function GET(request: NextRequest) {
 
 // Helper to transform database data
 function transformDatabaseData(menuData: {
-  diningHall: string;
+  diningHall: {
+    id: number;
+    name: string;
+    slug: string;
+    createdAt: Date;
+  };
   date: string;
   meals: Record<string, Array<{
+    menuId: number;
+    mealPeriod: string;
     itemId: number;
     itemName: string;
     itemCategory: string | null;
@@ -124,8 +131,8 @@ function transformDatabaseData(menuData: {
     servingSize: string | null;
     vitamins: unknown;
     minerals: unknown;
-    allergens: unknown;
-    dietaryFlags: unknown;
+    allergens: string[] | null;
+    dietaryFlags: string[] | null;
   }>>;
 }) {
   const transformedMeals: Record<string, Array<{
@@ -173,7 +180,11 @@ function transformDatabaseData(menuData: {
   }
 
   return {
-    diningHall: menuData.diningHall,
+    diningHall: {
+      id: menuData.diningHall.id,
+      name: menuData.diningHall.name,
+      slug: menuData.diningHall.slug,
+    },
     date: menuData.date,
     meals: transformedMeals,
   };
