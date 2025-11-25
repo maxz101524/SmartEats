@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const totalItems = Object.values(results).reduce(
+    const totalItems = Object.values(results).reduce<number>(
       (sum, r) => sum + (typeof r === 'object' && r && 'itemCount' in r ? (r.itemCount as number) : 0),
       0
     );
