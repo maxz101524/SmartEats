@@ -48,131 +48,150 @@ export function NutritionCard({
   };
 
   return (
-    <div className="nutrition-card group">
+    <div className={`nutrition-card-v2 ${expanded ? "expanded" : ""} ${isInMealPlan ? "in-plan" : ""}`}>
       <div
-        className="nutrition-card-header"
+        className="card-header"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex-1 min-w-0">
-          <h3 className="nutrition-card-title">{item.name}</h3>
-          {item.category && (
-            <span className="nutrition-card-category">{item.category}</span>
-          )}
+        <div className="card-title-row">
+          <div className="card-title-content">
+            <h3 className="card-title">{item.name}</h3>
+            {item.category && (
+              <span className="card-category">{item.category}</span>
+            )}
+          </div>
+          <button
+            className="expand-btn"
+            aria-label={expanded ? "Collapse" : "Expand"}
+          >
+            <svg
+              className={`expand-icon ${expanded ? "rotated" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
         </div>
 
         {hasNutrition && (
-          <div className="nutrition-card-macros">
-            <span className="macro-badge macro-calories">
-              {formatNutrient(scale(nutrition.calories), "")} cal
-            </span>
-            <span className="macro-badge macro-protein">
-              {formatNutrient(scale(nutrition.protein), "g")} P
-            </span>
-            <span className="macro-badge macro-carbs">
-              {formatNutrient(scale(nutrition.carbs), "g")} C
-            </span>
-            <span className="macro-badge macro-fat">
-              {formatNutrient(scale(nutrition.fat), "g")} F
-            </span>
+          <div className="macro-row">
+            <div className="macro-pill calories">
+              <span className="macro-value">{formatNutrient(scale(nutrition.calories), "")}</span>
+              <span className="macro-unit">cal</span>
+            </div>
+            <div className="macro-pill protein">
+              <span className="macro-value">{formatNutrient(scale(nutrition.protein), "")}</span>
+              <span className="macro-unit">g P</span>
+            </div>
+            <div className="macro-pill carbs">
+              <span className="macro-value">{formatNutrient(scale(nutrition.carbs), "")}</span>
+              <span className="macro-unit">g C</span>
+            </div>
+            <div className="macro-pill fat">
+              <span className="macro-value">{formatNutrient(scale(nutrition.fat), "")}</span>
+              <span className="macro-unit">g F</span>
+            </div>
           </div>
         )}
 
-        <button
-          className="expand-button"
-          aria-label={expanded ? "Collapse" : "Expand"}
-        >
-          <svg
-            className={`w-5 h-5 transition-transform ${expanded ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
+        {!hasNutrition && (
+          <div className="no-nutrition-badge">
+            <span>Nutrition data coming soon</span>
+          </div>
+        )}
       </div>
 
       {expanded && (
-        <div className="nutrition-card-details">
+        <div className="card-details">
           {hasNutrition ? (
             <>
               {/* Serving size and quantity controls */}
-              <div className="detail-row border-b border-slate-700 pb-3 mb-3">
-                <span className="detail-label">Serving Size</span>
-                <span className="detail-value">{nutrition.servingSize || "1 serving"}</span>
+              <div className="detail-section">
+                <div className="detail-row">
+                  <span className="detail-label">Serving Size</span>
+                  <span className="detail-value">{nutrition.servingSize || "1 serving"}</span>
+                </div>
+
+                {onAddToMealPlan && (
+                  <div className="detail-row">
+                    <span className="detail-label">Quantity</span>
+                    <div className="quantity-controls">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuantity(Math.max(0.5, quantity - 0.5));
+                        }}
+                        className="qty-btn"
+                      >
+                        −
+                      </button>
+                      <span className="qty-value">{quantity}x</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuantity(quantity + 0.5);
+                        }}
+                        className="qty-btn"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {onAddToMealPlan && (
-                <div className="detail-row border-b border-slate-700 pb-3 mb-3">
-                  <span className="detail-label">Quantity</span>
-                  <div className="quantity-controls">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setQuantity(Math.max(0.5, quantity - 0.5));
-                      }}
-                      className="quantity-btn"
-                    >
-                      -
-                    </button>
-                    <span className="quantity-value">{quantity}x</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setQuantity(quantity + 0.5);
-                      }}
-                      className="quantity-btn"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Detailed macros */}
-              <div className="nutrition-grid">
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Calories</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.calories), "")}</span>
+              <div className="nutrition-breakdown">
+                <div className="nutrition-stat">
+                  <span className="stat-value calories">{formatNutrient(scale(nutrition.calories), "")}</span>
+                  <span className="stat-label">Calories</span>
                 </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Protein</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.protein), "g")}</span>
+                <div className="nutrition-stat">
+                  <span className="stat-value protein">{formatNutrient(scale(nutrition.protein), "g")}</span>
+                  <span className="stat-label">Protein</span>
                 </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Carbs</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.carbs), "g")}</span>
+                <div className="nutrition-stat">
+                  <span className="stat-value carbs">{formatNutrient(scale(nutrition.carbs), "g")}</span>
+                  <span className="stat-label">Carbs</span>
                 </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Fat</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.fat), "g")}</span>
+                <div className="nutrition-stat">
+                  <span className="stat-value fat">{formatNutrient(scale(nutrition.fat), "g")}</span>
+                  <span className="stat-label">Fat</span>
                 </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Fiber</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.fiber), "g")}</span>
-                </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Sugar</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.sugar), "g")}</span>
-                </div>
-                <div className="nutrition-item">
-                  <span className="nutrition-label">Sodium</span>
-                  <span className="nutrition-value">{formatNutrient(scale(nutrition.sodium), "mg")}</span>
-                </div>
+                {nutrition.fiber && (
+                  <div className="nutrition-stat">
+                    <span className="stat-value">{formatNutrient(scale(nutrition.fiber), "g")}</span>
+                    <span className="stat-label">Fiber</span>
+                  </div>
+                )}
+                {nutrition.sugar && (
+                  <div className="nutrition-stat">
+                    <span className="stat-value">{formatNutrient(scale(nutrition.sugar), "g")}</span>
+                    <span className="stat-label">Sugar</span>
+                  </div>
+                )}
+                {nutrition.sodium && (
+                  <div className="nutrition-stat">
+                    <span className="stat-value">{formatNutrient(scale(nutrition.sodium), "mg")}</span>
+                    <span className="stat-label">Sodium</span>
+                  </div>
+                )}
               </div>
 
               {/* Dietary flags */}
               {nutrition.dietaryFlags && nutrition.dietaryFlags.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-xs text-slate-400 uppercase tracking-wider">Dietary</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                <div className="tags-section">
+                  <span className="tags-label">Dietary</span>
+                  <div className="tags-list">
                     {nutrition.dietaryFlags.map((flag) => (
-                      <span key={flag} className="dietary-badge">
+                      <span key={flag} className="tag dietary">
                         {flag}
                       </span>
                     ))}
@@ -182,11 +201,11 @@ export function NutritionCard({
 
               {/* Allergens */}
               {nutrition.allergens && nutrition.allergens.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-xs text-slate-400 uppercase tracking-wider">Allergens</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                <div className="tags-section">
+                  <span className="tags-label">Allergens</span>
+                  <div className="tags-list">
                     {nutrition.allergens.map((allergen) => (
-                      <span key={allergen} className="allergen-badge">
+                      <span key={allergen} className="tag allergen">
                         {allergen}
                       </span>
                     ))}
@@ -201,16 +220,17 @@ export function NutritionCard({
                     e.stopPropagation();
                     onAddToMealPlan(item, quantity);
                   }}
-                  className={`add-to-plan-btn ${isInMealPlan ? "added" : ""}`}
+                  className={`add-btn ${isInMealPlan ? "added" : ""}`}
                 >
                   {isInMealPlan ? "✓ In Meal Plan" : "+ Add to Meal Plan"}
                 </button>
               )}
             </>
           ) : (
-            <div className="no-nutrition">
+            <div className="no-nutrition-message">
+              <div className="no-nutrition-icon">🔬</div>
               <p>Nutrition information not available yet.</p>
-              <p className="text-xs mt-1">Check back soon!</p>
+              <p className="subtext">We&apos;re working on adding this data!</p>
             </div>
           )}
         </div>
@@ -218,4 +238,3 @@ export function NutritionCard({
     </div>
   );
 }
-

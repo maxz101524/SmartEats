@@ -7,7 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 // Format date for display
 export function formatDate(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+  // Add T12:00:00 to avoid timezone issues when parsing ISO date strings
+  const d = typeof date === "string" ? new Date(date + "T12:00:00") : date;
   return d.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -16,9 +17,12 @@ export function formatDate(date: Date | string): string {
   });
 }
 
-// Format date for API/database (YYYY-MM-DD)
+// Format date for API/database (YYYY-MM-DD) - uses local timezone
 export function formatDateISO(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // Get today's date in ISO format
