@@ -3,18 +3,14 @@
     {
       "path": "/api/scrape",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/nutrition",
-      "schedule": "0 7 * * *"
     }
   ],
   "functions": {
     "src/app/api/scrape/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
-    "src/app/api/nutrition/route.ts": {
-      "maxDuration": 60
+    "src/app/api/seed/route.ts": {
+      "maxDuration": 300
     }
   }
 }

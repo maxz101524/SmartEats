@@ -4,8 +4,9 @@ import { getAvailableDiningHalls, type DiningHallSlug } from "@/lib/scraper";
 import { formatDateISO } from "@/lib/utils";
 
 // Vercel Cron will call this endpoint daily
+// Now includes nutrition generation, so needs longer timeout
 export const runtime = "nodejs";
-export const maxDuration = 60; // 60 seconds max for scraping
+export const maxDuration = 300; // 5 minutes - allows time for nutrition generation
 
 export async function GET(request: NextRequest) {
   // Verify cron secret for security
@@ -41,8 +42,10 @@ async function runScraper(request: NextRequest) {
   const date = searchParams.get("date") || formatDateISO(new Date());
   const hall = searchParams.get("hall") as DiningHallSlug | null;
 
+  const startTime = Date.now();
+
   try {
-    const results: Record<string, { success: boolean; itemCount: number; error?: string }> = {};
+    const results: Record<string, { success: boolean; itemCount: number; newItems: number; error?: string }> = {};
     
     // If specific hall requested, scrape only that one
     if (hall) {
@@ -57,7 +60,7 @@ async function runScraper(request: NextRequest) {
         results[hallSlug] = result;
         
         // Small delay between halls
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
@@ -65,12 +68,19 @@ async function runScraper(request: NextRequest) {
       (sum, r) => sum + r.itemCount,
       0
     );
+    const totalNewItems = Object.values(results).reduce(
+      (sum, r) => sum + r.newItems,
+      0
+    );
     const allSuccess = Object.values(results).every((r) => r.success);
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
 
     return NextResponse.json({
       success: allSuccess,
       date,
       totalItems,
+      newItemsWithNutrition: totalNewItems,
+      durationSeconds,
       results,
       timestamp: new Date().toISOString(),
     });
