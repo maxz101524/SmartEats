@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/Header";
+import { UserPreferencesProvider } from "@/contexts";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -48,8 +48,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${dmSans.variable}`}>
       <body>
-        <Header />
-        {children}
+        <UserPreferencesProvider>
+          {children}
+        </UserPreferencesProvider>
       </body>
     </html>
   );

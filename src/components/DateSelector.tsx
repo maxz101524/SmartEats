@@ -86,7 +86,11 @@ export function DateSelector({
   };
 
   const handleDateSelect = (date: Date) => {
-    onChange(formatDateISO(date));
+    // Don't allow selecting past dates
+    const dateStr = formatDateISO(date);
+    if (dateStr < today) return;
+    
+    onChange(dateStr);
     setIsOpen(false);
   };
 
@@ -163,12 +167,15 @@ export function DateSelector({
               const dateStr = formatDateISO(date);
               const isToday = dateStr === today;
               const isSelected = dateStr === selected;
+              const isPast = dateStr < today;
               
               return (
                 <button
                   key={idx}
-                  className={`calendar-day ${!isCurrentMonth ? "other-month" : ""} ${isToday ? "today" : ""} ${isSelected ? "selected" : ""}`}
+                  className={`calendar-day ${!isCurrentMonth ? "other-month" : ""} ${isToday ? "today" : ""} ${isSelected ? "selected" : ""} ${isPast ? "past-date" : ""}`}
                   onClick={() => handleDateSelect(date)}
+                  disabled={isPast}
+                  aria-disabled={isPast}
                 >
                   {date.getDate()}
                 </button>

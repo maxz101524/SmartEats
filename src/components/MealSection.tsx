@@ -24,18 +24,31 @@ interface MenuItem {
   } | null;
 }
 
+interface GhostPreview {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 interface MealSectionProps {
   mealPeriod: string;
   items: MenuItem[];
   onAddToMealPlan?: (item: MenuItem, quantity: number) => void;
+  onQuickAdd?: (item: MenuItem) => void;
   mealPlanItems?: number[];
+  onHoverStart?: (nutrition: GhostPreview) => void;
+  onHoverEnd?: () => void;
 }
 
 export function MealSection({
   mealPeriod,
   items,
   onAddToMealPlan,
+  onQuickAdd,
   mealPlanItems = [],
+  onHoverStart,
+  onHoverEnd,
 }: MealSectionProps) {
   // Group items by category
   const itemsByCategory = items.reduce<Record<string, MenuItem[]>>(
@@ -69,7 +82,10 @@ export function MealSection({
                   key={item.id}
                   item={item}
                   onAddToMealPlan={onAddToMealPlan}
+                  onQuickAdd={onQuickAdd}
                   isInMealPlan={mealPlanItems.includes(item.id)}
+                  onHoverStart={onHoverStart}
+                  onHoverEnd={onHoverEnd}
                 />
               ))}
             </div>
@@ -79,4 +95,3 @@ export function MealSection({
     </section>
   );
 }
-

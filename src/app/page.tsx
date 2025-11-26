@@ -9,6 +9,8 @@ import {
   MealPlanSummary,
   FilterPanel,
   filterMenuItems,
+  Header,
+  GoalsModal,
 } from "@/components";
 import { formatDateISO, formatDate } from "@/lib/utils";
 import type { DiningHallSlug } from "@/lib/scraper/config";
@@ -59,6 +61,13 @@ interface FilterOptions {
   excludeAllergens: string[];
 }
 
+interface GhostPreview {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export default function Home() {
   const [selectedHall, setSelectedHall] = useState<DiningHallSlug>("ikenberry");
   const [selectedDate, setSelectedDate] = useState(formatDateISO(new Date()));
@@ -74,6 +83,8 @@ export default function Home() {
     dietaryFlags: [],
     excludeAllergens: [],
   });
+  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+  const [ghostPreview, setGhostPreview] = useState<GhostPreview | null>(null);
 
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -131,6 +142,10 @@ export default function Home() {
     });
   };
 
+  const handleQuickAdd = (item: MenuItem) => {
+    handleAddToMealPlan(item, 1);
+  };
+
   const handleRemoveFromMealPlan = (id: number) => {
     setMealPlan((prev) => prev.filter((p) => p.id !== id));
   };
@@ -139,139 +154,162 @@ export default function Home() {
     setMealPlan([]);
   };
 
+  const handleHoverStart = (nutrition: GhostPreview) => {
+    setGhostPreview(nutrition);
+  };
+
+  const handleHoverEnd = () => {
+    setGhostPreview(null);
+  };
+
   const meals = menuData ? Object.keys(menuData.meals) : [];
   const currentMealItems = menuData?.meals[selectedMeal] || [];
   const filteredItems = filterMenuItems(currentMealItems, filters);
   const mealPlanItemIds = mealPlan.map((p) => p.id);
 
   return (
-    <main className="main-container">
-      {/* Controls */}
-      <section className="controls-section">
-        <DiningHallSelector
-          selected={selectedHall}
-          onChange={setSelectedHall}
-        />
-        <DateSelector selected={selectedDate} onChange={setSelectedDate} />
-      </section>
+    <>
+      <Header onOpenGoals={() => setIsGoalsModalOpen(true)} />
+      
+      <main className="main-container">
+        {/* Controls */}
+        <section className="controls-section">
+          <DiningHallSelector
+            selected={selectedHall}
+            onChange={setSelectedHall}
+          />
+          <DateSelector selected={selectedDate} onChange={setSelectedDate} />
+        </section>
 
-      {/* Content Layout */}
-      <div className="content-layout">
-        {/* Main Menu Content */}
-        <div className="menu-content">
-          {loading ? (
-            <div className="loading-container">
-              <div className="loading-spinner" />
-              <p className="loading-text">Loading menu...</p>
-            </div>
-          ) : error ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🍽️</div>
-              <h2 className="empty-state-title">No Menu Available</h2>
-              <p className="empty-state-text">
-                {error}
-                <br />
-                Try selecting a different date or dining hall.
-              </p>
-            </div>
-          ) : menuData && meals.length > 0 ? (
-            <>
-              <h1 style={{ marginBottom: "1rem", fontSize: "1.25rem" }}>
-                {menuData.diningHall.name}
-                <span
-                  style={{
-                    fontWeight: 400,
-                    color: "var(--text-secondary)",
-                    marginLeft: "0.5rem",
-                  }}
-                >
-                  • {formatDate(menuData.date)}
-                </span>
-              </h1>
+        {/* Content Layout */}
+        <div className="content-layout">
+          {/* Main Menu Content */}
+          <div className="menu-content">
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner" />
+                <p className="loading-text">Loading menu...</p>
+              </div>
+            ) : error ? (
+              <div className="empty-state">
+                <div className="empty-state-icon">🍽️</div>
+                <h2 className="empty-state-title">No Menu Available</h2>
+                <p className="empty-state-text">
+                  {error}
+                  <br />
+                  Try selecting a different date or dining hall.
+                </p>
+              </div>
+            ) : menuData && meals.length > 0 ? (
+              <>
+                <h1 style={{ marginBottom: "1rem", fontSize: "1.25rem" }}>
+                  {menuData.diningHall.name}
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      color: "var(--text-secondary)",
+                      marginLeft: "0.5rem",
+                    }}
+                  >
+                    • {formatDate(menuData.date)}
+                  </span>
+                </h1>
 
-              <MealTabs
-                meals={meals}
-                selected={selectedMeal}
-                onChange={setSelectedMeal}
-              />
-
-              <FilterPanel
-                filters={filters}
-                onFilterChange={setFilters}
-              />
-
-              {filteredItems.length > 0 ? (
-                <MealSection
-                  mealPeriod={selectedMeal}
-                  items={filteredItems}
-                  onAddToMealPlan={handleAddToMealPlan}
-                  mealPlanItems={mealPlanItemIds}
+                <MealTabs
+                  meals={meals}
+                  selected={selectedMeal}
+                  onChange={setSelectedMeal}
                 />
-              ) : (
-                <div className="empty-state">
-                  <div className="empty-state-icon">🔍</div>
-                  <h2 className="empty-state-title">No Matches</h2>
-                  <p className="empty-state-text">
-                    No items match your current filters.
-                    <br />
-                    Try adjusting your search or filter criteria.
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-state-icon">📋</div>
-              <h2 className="empty-state-title">No Items Found</h2>
-              <p className="empty-state-text">
-                No menu items available for this selection.
-              </p>
+
+                <FilterPanel
+                  filters={filters}
+                  onFilterChange={setFilters}
+                />
+
+                {filteredItems.length > 0 ? (
+                  <MealSection
+                    mealPeriod={selectedMeal}
+                    items={filteredItems}
+                    onAddToMealPlan={handleAddToMealPlan}
+                    onQuickAdd={handleQuickAdd}
+                    mealPlanItems={mealPlanItemIds}
+                    onHoverStart={handleHoverStart}
+                    onHoverEnd={handleHoverEnd}
+                  />
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">🔍</div>
+                    <h2 className="empty-state-title">No Matches</h2>
+                    <p className="empty-state-text">
+                      No items match your current filters.
+                      <br />
+                      Try adjusting your search or filter criteria.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-icon">📋</div>
+                <h2 className="empty-state-title">No Items Found</h2>
+                <p className="empty-state-text">
+                  No menu items available for this selection.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar - Meal Plan */}
+          <aside className="sidebar">
+            <div className="sidebar-sticky">
+              <MealPlanSummary
+                items={mealPlan}
+                onRemoveItem={handleRemoveFromMealPlan}
+                onClear={handleClearMealPlan}
+                onOpenGoals={() => setIsGoalsModalOpen(true)}
+                ghostPreview={ghostPreview}
+              />
             </div>
-          )}
+          </aside>
         </div>
 
-        {/* Sidebar - Meal Plan */}
-        <aside className="sidebar">
-          <div className="sidebar-sticky">
-            <MealPlanSummary
-              items={mealPlan}
-              onRemoveItem={handleRemoveFromMealPlan}
-              onClear={handleClearMealPlan}
-            />
-          </div>
-        </aside>
-      </div>
-
-      {/* Disclaimer */}
-      <div className="disclaimer">
-        <strong>Disclaimer:</strong> Nutritional information is estimated using
-        AI and may not be 100% accurate. For official nutrition data, please
-        consult{" "}
-        <a
-          href="http://eatsmart.housing.illinois.edu/NetNutrition/46"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "var(--accent-orange)" }}
-        >
-          UIUC NetNutrition
-        </a>
-        .
-      </div>
-
-      {/* Footer */}
-      <footer className="app-footer">
-        <p>
-          Made for UIUC students 🧡 •{" "}
+        {/* Disclaimer */}
+        <div className="disclaimer">
+          <strong>Disclaimer:</strong> Nutritional information is estimated using
+          AI and may not be 100% accurate. For official nutrition data, please
+          consult{" "}
           <a
-            href="https://github.com"
+            href="http://eatsmart.housing.illinois.edu/NetNutrition/46"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--accent-orange)" }}
           >
-            GitHub
+            UIUC NetNutrition
           </a>
-        </p>
-      </footer>
-    </main>
+          .
+        </div>
+
+        {/* Footer */}
+        <footer className="app-footer">
+          <p>
+            Made for UIUC students 🧡 •{" "}
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              GitHub
+            </a>
+          </p>
+        </footer>
+      </main>
+
+      {/* Goals Modal */}
+      <GoalsModal
+        isOpen={isGoalsModalOpen}
+        onClose={() => setIsGoalsModalOpen(false)}
+      />
+    </>
   );
 }
