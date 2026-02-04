@@ -24,6 +24,12 @@ function toNumber(value: string | number | null | undefined) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function toDecimalString(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") return value;
+  return Number.isFinite(value) ? value.toString() : null;
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -70,11 +76,11 @@ export async function POST(request: Request) {
       itemName: item.name,
       quantity: Math.max(1, item.quantity ?? 1),
       calories: item.nutrition?.calories ?? null,
-      protein: toNumber(item.nutrition?.protein ?? null),
-      carbs: toNumber(item.nutrition?.carbs ?? null),
-      fat: toNumber(item.nutrition?.fat ?? null),
-      fiber: toNumber(item.nutrition?.fiber ?? null),
-      sugar: toNumber(item.nutrition?.sugar ?? null),
+      protein: toDecimalString(item.nutrition?.protein ?? null),
+      carbs: toDecimalString(item.nutrition?.carbs ?? null),
+      fat: toDecimalString(item.nutrition?.fat ?? null),
+      fiber: toDecimalString(item.nutrition?.fiber ?? null),
+      sugar: toDecimalString(item.nutrition?.sugar ?? null),
       sodium: item.nutrition?.sodium ?? null,
     }))
   );
