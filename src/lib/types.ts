@@ -106,3 +106,37 @@ export interface FilterOptions {
   excludeAllergens: string[];
 }
 
+export interface RecommendationConstraints {
+  minProtein: number | null;
+  maxCalories: number | null;
+  minCalories: number | null;
+  maxCarbs: number | null;
+  maxFat: number | null;
+  dietaryFlags: string[];
+  excludeAllergens: string[];
+  avoidIngredients: string[];
+  preferIngredients: string[];
+  maxItems: number | null;
+  mealPeriod: string | null;
+}
+
+export interface RecommendationItem {
+  id: number;
+  name: string;
+  quantity: number;
+  nutrition: MenuItemWithNutrition["nutrition"];
+  score: number;
+}
+
+export interface RecommendationResult {
+  items: RecommendationItem[];
+  totals: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  constraints: RecommendationConstraints;
+  explanation: string;
+  warnings: string[];
+}

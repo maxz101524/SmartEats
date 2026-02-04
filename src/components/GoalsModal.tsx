@@ -1,27 +1,55 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUserPreferences, DEFAULT_GOALS, type DailyGoals } from "@/contexts";
+import {
+  useUserPreferences,
+  DEFAULT_GOALS,
+  type DailyGoals,
+  type UserProfile,
+} from "@/contexts";
 
 interface GoalsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
-  const { goals, updateGoals, resetGoals } = useUserPreferences();
-  const [formData, setFormData] = useState<DailyGoals>(goals);
-  const [errors, setErrors] = useState<Partial<Record<keyof DailyGoals, string>>>({});
+const DIETARY_OPTIONS = ["vegetarian", "vegan", "halal", "gluten-free"];
+const ALLERGEN_OPTIONS = [
+  "gluten",
+  "dairy",
+  "eggs",
+  "soy",
+  "nuts",
+  "shellfish",
+  "fish",
+];
 
-  // Sync form data with goals when modal opens
+export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
+  const { goals, profile, updateGoals, resetGoals, updateProfile } =
+    useUserPreferences();
+  const [formData, setFormData] = useState<UserProfile>(profile);
+  const [errors, setErrors] = useState<Partial<Record<keyof DailyGoals, string>>>(
+    {}
+  );
+  const [excludedText, setExcludedText] = useState("");
+  const [preferredText, setPreferredText] = useState("");
+  const [cuisinesText, setCuisinesText] = useState("");
+
+  // Sync form data with profile when modal opens
   useEffect(() => {
     if (isOpen) {
-      setFormData(goals);
+      setFormData(profile);
       setErrors({});
+      setExcludedText(profile.excludedIngredients.join(", "));
+      setPreferredText(profile.preferredIngredients.join(", "));
+      setCuisinesText(profile.preferredCuisines.join(", "));
     }
-  }, [isOpen, goals]);
+  }, [isOpen, profile]);
 
-  const validateField = (field: keyof DailyGoals, value: number): string | undefined => {
+  const validateField = (
+    field: keyof DailyGoals,
+    value: number
+  ): string | undefined => {
     if (isNaN(value) || value <= 0) {
       return "Must be a positive number";
     }
@@ -40,21 +68,25 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
 
   const handleChange = (field: keyof DailyGoals, value: string) => {
     const numValue = parseFloat(value) || 0;
-    setFormData((prev) => ({ ...prev, [field]: numValue }));
-    
-    // Clear error when user starts typing
+    setFormData((prev) => ({
+      ...prev,
+      goals: {
+        ...prev.goals,
+        [field]: numValue,
+      },
+    }));
+
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
   const handleSubmit = () => {
-    // Validate all fields
     const newErrors: Partial<Record<keyof DailyGoals, string>> = {};
     let hasErrors = false;
 
-    (Object.keys(formData) as (keyof DailyGoals)[]).forEach((field) => {
-      const error = validateField(field, formData[field]);
+    (Object.keys(formData.goals) as (keyof DailyGoals)[]).forEach((field) => {
+      const error = validateField(field, formData.goals[field]);
       if (error) {
         newErrors[field] = error;
         hasErrors = true;
@@ -66,12 +98,29 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
       return;
     }
 
-    updateGoals(formData);
+    const splitList = (value: string) =>
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    const updatedProfile: UserProfile = {
+      ...formData,
+      excludedIngredients: splitList(excludedText),
+      preferredIngredients: splitList(preferredText),
+      preferredCuisines: splitList(cuisinesText),
+    };
+
+    updateGoals(updatedProfile.goals);
+    updateProfile(updatedProfile);
     onClose();
   };
 
   const handleReset = () => {
-    setFormData(DEFAULT_GOALS);
+    setFormData((prev) => ({
+      ...prev,
+      goals: DEFAULT_GOALS,
+    }));
     setErrors({});
     resetGoals();
   };
@@ -80,19 +129,18 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
 
   return (
     <>
-      {/* Backdrop */}
       <div className="modal-backdrop" onClick={onClose} />
 
-      {/* Modal */}
       <div className="modal-container">
         <div className="modal-content">
-          {/* Header */}
           <div className="modal-header">
             <div className="modal-title-row">
               <div className="modal-icon">🎯</div>
               <div>
-                <h2 className="modal-title">My Daily Goals</h2>
-                <p className="modal-subtitle">Set your personal nutrition targets</p>
+                <h2 className="modal-title">My Profile</h2>
+                <p className="modal-subtitle">
+                  Goals and preferences for personalized recommendations
+                </p>
               </div>
             </div>
             <button className="modal-close-btn" onClick={onClose} aria-label="Close">
@@ -102,10 +150,8 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
             </button>
           </div>
 
-          {/* Form */}
           <div className="modal-body">
             <div className="goals-form">
-              {/* Calories */}
               <div className="goal-input-group">
                 <div className="goal-input-header">
                   <label className="goal-label">
@@ -117,7 +163,7 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 <input
                   type="number"
                   className={`goal-input ${errors.calories ? "error" : ""}`}
-                  value={formData.calories || ""}
+                  value={formData.goals.calories || ""}
                   onChange={(e) => handleChange("calories", e.target.value)}
                   placeholder="2000"
                   min="500"
@@ -126,7 +172,6 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 {errors.calories && <span className="goal-error">{errors.calories}</span>}
               </div>
 
-              {/* Protein */}
               <div className="goal-input-group">
                 <div className="goal-input-header">
                   <label className="goal-label">
@@ -138,7 +183,7 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 <input
                   type="number"
                   className={`goal-input ${errors.protein ? "error" : ""}`}
-                  value={formData.protein || ""}
+                  value={formData.goals.protein || ""}
                   onChange={(e) => handleChange("protein", e.target.value)}
                   placeholder="150"
                   min="10"
@@ -147,7 +192,6 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 {errors.protein && <span className="goal-error">{errors.protein}</span>}
               </div>
 
-              {/* Carbs */}
               <div className="goal-input-group">
                 <div className="goal-input-header">
                   <label className="goal-label">
@@ -159,7 +203,7 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 <input
                   type="number"
                   className={`goal-input ${errors.carbs ? "error" : ""}`}
-                  value={formData.carbs || ""}
+                  value={formData.goals.carbs || ""}
                   onChange={(e) => handleChange("carbs", e.target.value)}
                   placeholder="250"
                   min="20"
@@ -168,7 +212,6 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 {errors.carbs && <span className="goal-error">{errors.carbs}</span>}
               </div>
 
-              {/* Fat */}
               <div className="goal-input-group">
                 <div className="goal-input-header">
                   <label className="goal-label">
@@ -180,7 +223,7 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                 <input
                   type="number"
                   className={`goal-input ${errors.fat ? "error" : ""}`}
-                  value={formData.fat || ""}
+                  value={formData.goals.fat || ""}
                   onChange={(e) => handleChange("fat", e.target.value)}
                   placeholder="65"
                   min="10"
@@ -190,7 +233,6 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
               </div>
             </div>
 
-            {/* Macro breakdown preview */}
             <div className="goals-preview">
               <h4 className="preview-title">Daily Macro Split</h4>
               <div className="preview-bar">
@@ -198,8 +240,10 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                   className="preview-segment protein"
                   style={{
                     width: `${Math.round(
-                      ((formData.protein * 4) /
-                        (formData.protein * 4 + formData.carbs * 4 + formData.fat * 9)) *
+                      ((formData.goals.protein * 4) /
+                        (formData.goals.protein * 4 +
+                          formData.goals.carbs * 4 +
+                          formData.goals.fat * 9)) *
                         100
                     )}%`,
                   }}
@@ -208,8 +252,10 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                   className="preview-segment carbs"
                   style={{
                     width: `${Math.round(
-                      ((formData.carbs * 4) /
-                        (formData.protein * 4 + formData.carbs * 4 + formData.fat * 9)) *
+                      ((formData.goals.carbs * 4) /
+                        (formData.goals.protein * 4 +
+                          formData.goals.carbs * 4 +
+                          formData.goals.fat * 9)) *
                         100
                     )}%`,
                   }}
@@ -218,8 +264,10 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
                   className="preview-segment fat"
                   style={{
                     width: `${Math.round(
-                      ((formData.fat * 9) /
-                        (formData.protein * 4 + formData.carbs * 4 + formData.fat * 9)) *
+                      ((formData.goals.fat * 9) /
+                        (formData.goals.protein * 4 +
+                          formData.goals.carbs * 4 +
+                          formData.goals.fat * 9)) *
                         100
                     )}%`,
                   }}
@@ -228,31 +276,122 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
               <div className="preview-legend">
                 <span className="legend-item">
                   <span className="legend-color protein" />
-                  Protein ({Math.round(((formData.protein * 4) / formData.calories) * 100)}%)
+                  Protein ({Math.round(((formData.goals.protein * 4) / formData.goals.calories) * 100)}%)
                 </span>
                 <span className="legend-item">
                   <span className="legend-color carbs" />
-                  Carbs ({Math.round(((formData.carbs * 4) / formData.calories) * 100)}%)
+                  Carbs ({Math.round(((formData.goals.carbs * 4) / formData.goals.calories) * 100)}%)
                 </span>
                 <span className="legend-item">
                   <span className="legend-color fat" />
-                  Fat ({Math.round(((formData.fat * 9) / formData.calories) * 100)}%)
+                  Fat ({Math.round(((formData.goals.fat * 9) / formData.goals.calories) * 100)}%)
                 </span>
+              </div>
+            </div>
+
+            <div className="goals-form" style={{ marginTop: "1.5rem" }}>
+              <div className="filter-section">
+                <h4 className="filter-section-title">Dietary Preferences</h4>
+                <div className="filter-chips">
+                  {DIETARY_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          dietaryFlags: prev.dietaryFlags.includes(option)
+                            ? prev.dietaryFlags.filter((f) => f !== option)
+                            : [...prev.dietaryFlags, option],
+                        }))
+                      }
+                      className={`filter-chip dietary ${
+                        formData.dietaryFlags.includes(option) ? "selected" : ""
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-section">
+                <h4 className="filter-section-title">Exclude Allergens</h4>
+                <div className="filter-chips">
+                  {ALLERGEN_OPTIONS.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          allergens: prev.allergens.includes(option)
+                            ? prev.allergens.filter((a) => a !== option)
+                            : [...prev.allergens, option],
+                        }))
+                      }
+                      className={`filter-chip allergen ${
+                        formData.allergens.includes(option) ? "selected" : ""
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="goal-input-group">
+                <div className="goal-input-header">
+                  <label className="goal-label">Avoid Ingredients</label>
+                  <span className="goal-unit">comma-separated</span>
+                </div>
+                <input
+                  type="text"
+                  className="goal-input"
+                  value={excludedText}
+                  onChange={(e) => setExcludedText(e.target.value)}
+                  placeholder="e.g., pork, peanuts"
+                />
+              </div>
+
+              <div className="goal-input-group">
+                <div className="goal-input-header">
+                  <label className="goal-label">Prefer Ingredients</label>
+                  <span className="goal-unit">comma-separated</span>
+                </div>
+                <input
+                  type="text"
+                  className="goal-input"
+                  value={preferredText}
+                  onChange={(e) => setPreferredText(e.target.value)}
+                  placeholder="e.g., chicken, quinoa"
+                />
+              </div>
+
+              <div className="goal-input-group">
+                <div className="goal-input-header">
+                  <label className="goal-label">Preferred Cuisines</label>
+                  <span className="goal-unit">comma-separated</span>
+                </div>
+                <input
+                  type="text"
+                  className="goal-input"
+                  value={cuisinesText}
+                  onChange={(e) => setCuisinesText(e.target.value)}
+                  placeholder="e.g., Mediterranean, Indian"
+                />
               </div>
             </div>
           </div>
 
-          {/* Footer */}
           <div className="modal-footer">
             <button className="btn-secondary" onClick={handleReset}>
-              Reset to Defaults
+              Reset Goals
             </button>
             <div className="footer-actions">
               <button className="btn-ghost" onClick={onClose}>
                 Cancel
               </button>
               <button className="btn-primary" onClick={handleSubmit}>
-                Save Goals
+                Save Profile
               </button>
             </div>
           </div>
@@ -261,4 +400,3 @@ export function GoalsModal({ isOpen, onClose }: GoalsModalProps) {
     </>
   );
 }
-

@@ -7,3 +7,4 @@ export { DateSelector } from "./DateSelector";
 export { MealTabs } from "./MealTabs";
 export { FilterPanel, filterMenuItems } from "./FilterPanel";
 export { GoalsModal } from "./GoalsModal";
+export { ChatPanel } from "./ChatPanel";

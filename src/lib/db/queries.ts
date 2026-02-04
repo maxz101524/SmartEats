@@ -1,15 +1,21 @@
 import { db } from "./index";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import {
   diningHalls,
   menuItems,
   dailyMenus,
   menuEntries,
   nutritionInfo,
+  userProfiles,
+  mealLogs,
+  mealLogItems,
   type NewMenuItem,
   type NewDailyMenu,
   type NewMenuEntry,
   type NewNutritionInfo,
+  type NewUserProfile,
+  type NewMealLog,
+  type NewMealLogItem,
 } from "./schema";
 
 // Dining Halls
@@ -220,3 +226,67 @@ export async function getAvailableDates(diningHallSlug: string, limit = 14) {
   return results.map((r) => r.date);
 }
 
+// User Profile
+export async function getUserProfile(userId: string) {
+  const results = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  return results[0] || null;
+}
+
+export async function upsertUserProfile(userId: string, profile: NewUserProfile) {
+  const payload = {
+    ...profile,
+    userId,
+    updatedAt: new Date(),
+  };
+
+  const result = await db
+    .insert(userProfiles)
+    .values(payload)
+    .onConflictDoUpdate({
+      target: userProfiles.userId,
+      set: payload,
+    })
+    .returning();
+
+  return result[0];
+}
+
+// Meal History
+export async function createMealLog(
+  log: NewMealLog,
+  items: NewMealLogItem[]
+) {
+  const result = await db.insert(mealLogs).values(log).returning();
+  const created = result[0];
+
+  if (items.length > 0) {
+    const withLogId = items.map((item) => ({
+      ...item,
+      mealLogId: created.id,
+    }));
+    await db.insert(mealLogItems).values(withLogId);
+  }
+
+  return created;
+}
+
+export async function getRecentMealItems(userId: string, days = 14) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const results = await db
+    .select({
+      menuItemId: mealLogItems.menuItemId,
+      itemName: mealLogItems.itemName,
+      quantity: mealLogItems.quantity,
+    })
+    .from(mealLogItems)
+    .innerJoin(mealLogs, eq(mealLogItems.mealLogId, mealLogs.id))
+    .where(and(eq(mealLogs.userId, userId), gte(mealLogs.createdAt, cutoff)));
+
+  return results;
+}

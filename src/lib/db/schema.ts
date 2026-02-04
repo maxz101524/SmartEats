@@ -12,6 +12,54 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+// Auth.js tables
+export const users = pgTable("users", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }),
+  email: varchar("email", { length: 255 }).unique(),
+  emailVerified: timestamp("email_verified"),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  provider: text("provider").notNull(),
+  providerAccountId: text("provider_account_id").notNull(),
+  refreshToken: text("refresh_token"),
+  accessToken: text("access_token"),
+  expiresAt: integer("expires_at"),
+  tokenType: text("token_type"),
+  scope: text("scope"),
+  idToken: text("id_token"),
+  sessionState: text("session_state"),
+});
+
+export const sessions = pgTable("sessions", {
+  sessionToken: text("session_token").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires").notNull(),
+});
+
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.identifier, table.token] }),
+  })
+);
+
 // Dining halls table
 export const diningHalls = pgTable("dining_halls", {
   id: serial("id").primaryKey(),
@@ -83,9 +131,71 @@ export const nutritionInfo = pgTable("nutrition_info", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// User profile (preferences + goals)
+export const userProfiles = pgTable("user_profiles", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  dailyCalories: integer("daily_calories"),
+  dailyProtein: integer("daily_protein"),
+  dailyCarbs: integer("daily_carbs"),
+  dailyFat: integer("daily_fat"),
+  dietaryFlags: jsonb("dietary_flags").$type<string[]>(),
+  allergens: jsonb("allergens").$type<string[]>(),
+  excludedIngredients: jsonb("excluded_ingredients").$type<string[]>(),
+  preferredIngredients: jsonb("preferred_ingredients").$type<string[]>(),
+  preferredCuisines: jsonb("preferred_cuisines").$type<string[]>(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Meal history
+export const mealLogs = pgTable("meal_logs", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  diningHallId: integer("dining_hall_id").references(() => diningHalls.id),
+  date: date("date").notNull(),
+  mealPeriod: varchar("meal_period", { length: 50 }).notNull(),
+  source: varchar("source", { length: 50 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const mealLogItems = pgTable("meal_log_items", {
+  id: serial("id").primaryKey(),
+  mealLogId: integer("meal_log_id")
+    .notNull()
+    .references(() => mealLogs.id, { onDelete: "cascade" }),
+  menuItemId: integer("menu_item_id").references(() => menuItems.id),
+  itemName: varchar("item_name", { length: 255 }).notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  calories: integer("calories"),
+  protein: decimal("protein", { precision: 6, scale: 2 }),
+  carbs: decimal("carbs", { precision: 6, scale: 2 }),
+  fat: decimal("fat", { precision: 6, scale: 2 }),
+  fiber: decimal("fiber", { precision: 6, scale: 2 }),
+  sugar: decimal("sugar", { precision: 6, scale: 2 }),
+  sodium: integer("sodium"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  profile: one(userProfiles, {
+    fields: [users.id],
+    references: [userProfiles.userId],
+  }),
+  accounts: many(accounts),
+  sessions: many(sessions),
+  mealLogs: many(mealLogs),
+}));
+
 export const diningHallsRelations = relations(diningHalls, ({ many }) => ({
   dailyMenus: many(dailyMenus),
+  mealLogs: many(mealLogs),
 }));
 
 export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
@@ -94,6 +204,7 @@ export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
     references: [nutritionInfo.menuItemId],
   }),
   menuEntries: many(menuEntries),
+  mealLogItems: many(mealLogItems),
 }));
 
 export const dailyMenusRelations = relations(dailyMenus, ({ one, many }) => ({
@@ -122,6 +233,36 @@ export const nutritionInfoRelations = relations(nutritionInfo, ({ one }) => ({
   }),
 }));
 
+export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [userProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
+export const mealLogsRelations = relations(mealLogs, ({ one, many }) => ({
+  user: one(users, {
+    fields: [mealLogs.userId],
+    references: [users.id],
+  }),
+  diningHall: one(diningHalls, {
+    fields: [mealLogs.diningHallId],
+    references: [diningHalls.id],
+  }),
+  items: many(mealLogItems),
+}));
+
+export const mealLogItemsRelations = relations(mealLogItems, ({ one }) => ({
+  mealLog: one(mealLogs, {
+    fields: [mealLogItems.mealLogId],
+    references: [mealLogs.id],
+  }),
+  menuItem: one(menuItems, {
+    fields: [mealLogItems.menuItemId],
+    references: [menuItems.id],
+  }),
+}));
+
 // Types
 export type DiningHall = typeof diningHalls.$inferSelect;
 export type NewDiningHall = typeof diningHalls.$inferInsert;
@@ -133,4 +274,17 @@ export type MenuEntry = typeof menuEntries.$inferSelect;
 export type NewMenuEntry = typeof menuEntries.$inferInsert;
 export type NutritionInfo = typeof nutritionInfo.$inferSelect;
 export type NewNutritionInfo = typeof nutritionInfo.$inferInsert;
-
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Account = typeof accounts.$inferSelect;
+export type NewAccount = typeof accounts.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type NewVerificationToken = typeof verificationTokens.$inferInsert;
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type NewUserProfile = typeof userProfiles.$inferInsert;
+export type MealLog = typeof mealLogs.$inferSelect;
+export type NewMealLog = typeof mealLogs.$inferInsert;
+export type MealLogItem = typeof mealLogItems.$inferSelect;
+export type NewMealLogItem = typeof mealLogItems.$inferInsert;

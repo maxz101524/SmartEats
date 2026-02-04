@@ -11,9 +11,12 @@ import {
   filterMenuItems,
   Header,
   GoalsModal,
+  ChatPanel,
 } from "@/components";
 import { formatDateISO, formatDate } from "@/lib/utils";
 import type { DiningHallSlug } from "@/lib/scraper/config";
+import { useUserPreferences } from "@/contexts";
+import { useSession } from "next-auth/react";
 
 interface MenuItem {
   id: number;
@@ -85,6 +88,8 @@ export default function Home() {
   });
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
   const [ghostPreview, setGhostPreview] = useState<GhostPreview | null>(null);
+  const { goals, profile } = useUserPreferences();
+  const { data: session } = useSession();
 
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -160,6 +165,31 @@ export default function Home() {
 
   const handleHoverEnd = () => {
     setGhostPreview(null);
+  };
+
+  const handleSaveMealPlan = async () => {
+    if (mealPlan.length === 0) return;
+
+    try {
+      await fetch("/api/meal-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          diningHallSlug: selectedHall,
+          date: selectedDate,
+          mealPeriod: selectedMeal,
+          source: "manual",
+          items: mealPlan.map((item) => ({
+            menuItemId: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            nutrition: item.nutrition,
+          })),
+        }),
+      });
+    } catch {
+      // Silent fail for now
+    }
   };
 
   const meals = menuData ? Object.keys(menuData.meals) : [];
@@ -268,6 +298,18 @@ export default function Home() {
                 onClear={handleClearMealPlan}
                 onOpenGoals={() => setIsGoalsModalOpen(true)}
                 ghostPreview={ghostPreview}
+                onSaveMeal={session?.user?.id ? handleSaveMealPlan : undefined}
+              />
+              <ChatPanel
+                diningHall={selectedHall}
+                date={selectedDate}
+                mealPeriod={selectedMeal}
+                goals={goals}
+                dietaryFlags={filters.dietaryFlags}
+                excludeAllergens={filters.excludeAllergens}
+                excludedIngredients={profile.excludedIngredients}
+                preferredIngredients={profile.preferredIngredients}
+                onAddToMealPlan={handleAddToMealPlan}
               />
             </div>
           </aside>

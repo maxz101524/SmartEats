@@ -8,6 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 
 // Types for daily nutrition goals
 export interface DailyGoals {
@@ -17,10 +18,22 @@ export interface DailyGoals {
   fat: number;
 }
 
+export interface UserProfile {
+  goals: DailyGoals;
+  dietaryFlags: string[];
+  allergens: string[];
+  excludedIngredients: string[];
+  preferredIngredients: string[];
+  preferredCuisines: string[];
+  notes: string;
+}
+
 interface UserPreferencesContextType {
   goals: DailyGoals;
+  profile: UserProfile;
   updateGoals: (goals: Partial<DailyGoals>) => void;
   resetGoals: () => void;
+  updateProfile: (profile: Partial<UserProfile>) => void;
   isLoaded: boolean;
 }
 
@@ -32,63 +45,157 @@ const DEFAULT_GOALS: DailyGoals = {
   fat: 65,
 };
 
-const STORAGE_KEY = "smarteats-user-goals";
+const DEFAULT_PROFILE: UserProfile = {
+  goals: DEFAULT_GOALS,
+  dietaryFlags: [],
+  allergens: [],
+  excludedIngredients: [],
+  preferredIngredients: [],
+  preferredCuisines: [],
+  notes: "",
+};
+
+const STORAGE_KEY = "smarteats-user-profile";
 
 const UserPreferencesContext = createContext<UserPreferencesContextType | undefined>(
   undefined
 );
 
 export function UserPreferencesProvider({ children }: { children: ReactNode }) {
-  const [goals, setGoals] = useState<DailyGoals>(DEFAULT_GOALS);
+  const { data: session } = useSession();
+  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load goals from localStorage on mount
-  useEffect(() => {
+  const loadFromStorage = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as Partial<DailyGoals>;
-        setGoals({
-          calories: parsed.calories ?? DEFAULT_GOALS.calories,
-          protein: parsed.protein ?? DEFAULT_GOALS.protein,
-          carbs: parsed.carbs ?? DEFAULT_GOALS.carbs,
-          fat: parsed.fat ?? DEFAULT_GOALS.fat,
+        const parsed = JSON.parse(stored) as Partial<UserProfile>;
+        setProfile({
+          goals: {
+            calories: parsed.goals?.calories ?? DEFAULT_GOALS.calories,
+            protein: parsed.goals?.protein ?? DEFAULT_GOALS.protein,
+            carbs: parsed.goals?.carbs ?? DEFAULT_GOALS.carbs,
+            fat: parsed.goals?.fat ?? DEFAULT_GOALS.fat,
+          },
+          dietaryFlags: parsed.dietaryFlags ?? [],
+          allergens: parsed.allergens ?? [],
+          excludedIngredients: parsed.excludedIngredients ?? [],
+          preferredIngredients: parsed.preferredIngredients ?? [],
+          preferredCuisines: parsed.preferredCuisines ?? [],
+          notes: parsed.notes ?? "",
         });
       }
     } catch (error) {
-      console.warn("Failed to load user goals from localStorage:", error);
+      console.warn("Failed to load profile from localStorage:", error);
     }
-    setIsLoaded(true);
   }, []);
 
-  // Save goals to localStorage whenever they change
+  // Load profile from API if signed in, otherwise from localStorage
   useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
-      } catch (error) {
-        console.warn("Failed to save user goals to localStorage:", error);
+    const load = async () => {
+      if (session?.user?.id) {
+        try {
+          const res = await fetch("/api/profile");
+          const data = await res.json();
+          if (data?.profile) {
+            setProfile({
+              goals: {
+                calories: data.profile.dailyCalories ?? DEFAULT_GOALS.calories,
+                protein: data.profile.dailyProtein ?? DEFAULT_GOALS.protein,
+                carbs: data.profile.dailyCarbs ?? DEFAULT_GOALS.carbs,
+                fat: data.profile.dailyFat ?? DEFAULT_GOALS.fat,
+              },
+              dietaryFlags: data.profile.dietaryFlags ?? [],
+              allergens: data.profile.allergens ?? [],
+              excludedIngredients: data.profile.excludedIngredients ?? [],
+              preferredIngredients: data.profile.preferredIngredients ?? [],
+              preferredCuisines: data.profile.preferredCuisines ?? [],
+              notes: data.profile.notes ?? "",
+            });
+          } else {
+            loadFromStorage();
+          }
+        } catch {
+          loadFromStorage();
+        }
+      } else {
+        loadFromStorage();
       }
-    }
-  }, [goals, isLoaded]);
+      setIsLoaded(true);
+    };
+
+    load();
+  }, [session?.user?.id, loadFromStorage]);
 
   const updateGoals = useCallback((newGoals: Partial<DailyGoals>) => {
-    setGoals((prev) => ({
+    setProfile((prev) => ({
       ...prev,
-      ...newGoals,
+      goals: {
+        ...prev.goals,
+        ...newGoals,
+      },
     }));
   }, []);
 
   const resetGoals = useCallback(() => {
-    setGoals(DEFAULT_GOALS);
+    setProfile((prev) => ({
+      ...prev,
+      goals: DEFAULT_GOALS,
+    }));
   }, []);
+
+  const updateProfile = useCallback(
+    (updates: Partial<UserProfile>) => {
+      setProfile((prev) => {
+        const next = {
+          ...prev,
+          ...updates,
+          goals: {
+            ...prev.goals,
+            ...(updates.goals ?? {}),
+          },
+        };
+
+        if (session?.user?.id) {
+          fetch("/api/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              dailyCalories: next.goals.calories,
+              dailyProtein: next.goals.protein,
+              dailyCarbs: next.goals.carbs,
+              dailyFat: next.goals.fat,
+              dietaryFlags: next.dietaryFlags,
+              allergens: next.allergens,
+              excludedIngredients: next.excludedIngredients,
+              preferredIngredients: next.preferredIngredients,
+              preferredCuisines: next.preferredCuisines,
+              notes: next.notes,
+            }),
+          }).catch(() => undefined);
+        } else if (isLoaded) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          } catch (error) {
+            console.warn("Failed to save profile to localStorage:", error);
+          }
+        }
+
+        return next;
+      });
+    },
+    [session?.user?.id, isLoaded]
+  );
 
   return (
     <UserPreferencesContext.Provider
       value={{
-        goals,
+        goals: profile.goals,
+        profile,
         updateGoals,
         resetGoals,
+        updateProfile,
         isLoaded,
       }}
     >
@@ -109,4 +216,3 @@ export function useUserPreferences(): UserPreferencesContextType {
 
 // Export default goals for reference
 export { DEFAULT_GOALS };
-

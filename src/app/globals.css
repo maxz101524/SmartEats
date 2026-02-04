@@ -2432,3 +2432,243 @@ h1, h2, h3, h4, h5, h6 {
     flex: 1;
   }
 }
+
+/* ============================
+   Header Auth
+   ============================ */
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-settings-btn {
+  margin-left: 0;
+}
+
+.header-auth-btn {
+  padding: 0.5rem 0.9rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.header-auth-btn:hover {
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+  background: var(--bg-card-hover);
+}
+
+/* ============================
+   Chat Panel
+   ============================ */
+.chat-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chat-header p {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.chat-signin-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chat-input-row textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.chat-submit-btn {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent-orange);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-error {
+  color: var(--accent-red);
+  font-size: 0.85rem;
+}
+
+.chat-recommendation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendation-summary {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+}
+
+.summary-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.summary-totals {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.summary-explanation {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.summary-warnings {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--accent-orange);
+}
+
+.recommendation-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recommendation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.recommendation-item .item-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.recommendation-item .item-macros {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.recommendation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-primary-btn {
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent-emerald);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-secondary-btn {
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.chat-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-confirm-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  width: min(360px, 90vw);
+  box-shadow: var(--shadow-lg);
+}
+
+.chat-confirm-modal h4 {
+  margin: 0 0 0.5rem;
+}
+
+.chat-confirm-modal p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.chat-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}

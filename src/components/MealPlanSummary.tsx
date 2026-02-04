@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatNutrient } from "@/lib/utils";
 import { useUserPreferences, type DailyGoals } from "@/contexts";
 
@@ -37,6 +38,7 @@ interface MealPlanSummaryProps {
   onClear: () => void;
   onOpenGoals?: () => void;
   ghostPreview?: GhostPreview | null;
+  onSaveMeal?: () => void;
 }
 
 function ProgressBar({
@@ -113,8 +115,10 @@ export function MealPlanSummary({
   onClear,
   onOpenGoals,
   ghostPreview,
+  onSaveMeal,
 }: MealPlanSummaryProps) {
   const { goals } = useUserPreferences();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Calculate totals
   const totals: Totals = items.reduce(
@@ -185,6 +189,11 @@ export function MealPlanSummary({
           {onOpenGoals && (
             <button onClick={onOpenGoals} className="goals-btn" title="Edit Goals">
               🎯
+            </button>
+          )}
+          {onSaveMeal && (
+            <button onClick={() => setConfirmOpen(true)} className="save-btn">
+              Save Meal
             </button>
           )}
           <button onClick={onClear} className="clear-btn">
@@ -272,6 +281,32 @@ export function MealPlanSummary({
           </div>
         </div>
       </div>
+
+      {confirmOpen && (
+        <div className="chat-confirm-backdrop">
+          <div className="chat-confirm-modal">
+            <h4>Save meal to history?</h4>
+            <p>This will add your current meal plan to your history.</p>
+            <div className="chat-confirm-actions">
+              <button
+                className="chat-secondary-btn"
+                onClick={() => setConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="chat-primary-btn"
+                onClick={() => {
+                  onSaveMeal?.();
+                  setConfirmOpen(false);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
