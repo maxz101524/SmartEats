@@ -27,6 +27,12 @@ function clampMaxItems(value: number | null | undefined) {
   return Math.min(Math.max(1, Math.round(value)), HARD_MAX_ITEMS);
 }
 
+function toNumber(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function POST(request: Request) {
   if (!process.env.POSTGRES_URL) {
     return NextResponse.json(
@@ -126,8 +132,46 @@ export async function POST(request: Request) {
     fat: profile?.dailyFat ?? (body.dailyFat as number | null | undefined),
   };
 
+  const itemsForRecommendations = menu.meals[mealPeriod].map((item) => {
+    const nutrition = {
+      calories: item.calories ?? null,
+      protein: toNumber(item.protein),
+      carbs: toNumber(item.carbs),
+      fat: toNumber(item.fat),
+      fiber: toNumber(item.fiber),
+      sugar: toNumber(item.sugar),
+      sodium: item.sodium ?? null,
+      servingSize: item.servingSize ?? null,
+      vitamins: item.vitamins ?? null,
+      minerals: item.minerals ?? null,
+      allergens: item.allergens ?? null,
+      dietaryFlags: item.dietaryFlags ?? null,
+    };
+    const hasNutrition =
+      nutrition.calories !== null ||
+      nutrition.protein !== null ||
+      nutrition.carbs !== null ||
+      nutrition.fat !== null ||
+      nutrition.fiber !== null ||
+      nutrition.sugar !== null ||
+      nutrition.sodium !== null ||
+      nutrition.servingSize !== null ||
+      (nutrition.vitamins && Object.keys(nutrition.vitamins).length > 0) ||
+      (nutrition.minerals && Object.keys(nutrition.minerals).length > 0) ||
+      (nutrition.allergens && nutrition.allergens.length > 0) ||
+      (nutrition.dietaryFlags && nutrition.dietaryFlags.length > 0);
+
+    return {
+      id: item.itemId,
+      name: item.itemName,
+      category: item.itemCategory,
+      course: item.course,
+      nutrition: hasNutrition ? nutrition : null,
+    };
+  });
+
   const result = recommendFromMenu(
-    menu.meals[mealPeriod],
+    itemsForRecommendations,
     mergedConstraints,
     dailyGoals,
     recentItemIds
