@@ -236,7 +236,10 @@ export async function getUserProfile(userId: string) {
   return results[0] || null;
 }
 
-export async function upsertUserProfile(userId: string, profile: NewUserProfile) {
+export async function upsertUserProfile(
+  userId: string,
+  profile: Omit<NewUserProfile, "userId">
+) {
   const payload = {
     ...profile,
     userId,
