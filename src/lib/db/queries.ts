@@ -258,7 +258,7 @@ export async function upsertUserProfile(userId: string, profile: NewUserProfile)
 // Meal History
 export async function createMealLog(
   log: NewMealLog,
-  items: NewMealLogItem[]
+  items: Omit<NewMealLogItem, "mealLogId">[]
 ) {
   const result = await db.insert(mealLogs).values(log).returning();
   const created = result[0];
